@@ -1,0 +1,13 @@
+﻿.header {
+    background-color: cadetblue;
+    height: 8%;
+    display: flex;
+}
+
+.header-text {
+    margin: 0;
+    padding: 0;
+    margin-left: 10px;
+    align-self: center;
+    font-size: 26px;
+}

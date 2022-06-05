@@ -1,0 +1,21 @@
+.file-uploader{
+    border: 1px solid #ffffff;
+    border-radius: 5px;
+    height: fit-content;
+    width: 25%;
+}
+
+h4, h3, h2{
+    text-align: center;
+    color: white;
+}
+
+p{
+    font-size: 20px !important;
+}
+
+.input-file {
+    margin: 5px;
+    border: 1px dashed #ffffff;
+    color: white !important;
+}

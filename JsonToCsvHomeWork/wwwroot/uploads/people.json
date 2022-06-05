@@ -1,0 +1,19 @@
+{
+    "people" : [
+        {
+            "key": "Anton",
+            "value": 32,
+            "newValue": ""
+        },
+        {
+            "key": "David",
+            "value": 31,
+            "newValue": ""
+        },
+        {
+            "key": "Spinat",
+            "value": 53,
+            "newValue": ""
+        }
+    ]
+}

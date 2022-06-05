@@ -1,0 +1,60 @@
+.csv-redactor {
+    border: 1px groove #ffffff;
+    border-radius: 5px;
+    width: 70%;
+    height: 85vh;
+}
+
+.edit-file-container{
+    height: 100%;
+}
+
+h3 {
+    color: snow;
+    height: 4%;
+}
+
+.table-container {
+    height: 86%;
+    overflow-y: auto;
+}
+
+table {
+    color: white;
+    margin: auto;
+    width: 96%;
+    border-collapse: collapse;
+    background-color: #96969623;
+}
+
+td, th {
+    border: 1px solid #808080;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(odd) {
+    background-color: #1b172376;
+}
+
+tr:nth-child(even) {
+    background-color: #1d2a3379;
+}
+
+.down-button {
+    margin: 5px;
+    background-color: aliceblue;
+    border: unset;
+    font-size: 24px;
+    font-style: oblique;
+    border-radius: 5px;
+    padding: 10px;
+    height: 8%;
+}
+
+p {
+    text-align: center;
+    color: aliceblue;
+    font-size: 36px;
+}
+
