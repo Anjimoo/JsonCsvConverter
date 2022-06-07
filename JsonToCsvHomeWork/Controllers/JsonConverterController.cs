@@ -27,13 +27,8 @@ namespace JsonToCsvHomeWork.Controllers
             try
             {
                 var file = form.Files[0];
+                _jsonToCsv.ResetWhenNewFileUploaded();
                 _jsonToCsv.Convert(file);
-                //var uploadsPath = Path.Combine(_hostingEnvironment.WebRootPath, "uploads");
-                //var filePath = Path.Combine(uploadsPath, file.FileName);
-                //using (Stream fileStream = new FileStream(filePath, FileMode.CreateNew))
-                //{
-                //    await file.CopyToAsync(fileStream);
-                //}
                 return Ok(_jsonToCsv.GetCsvJsonRepresentation());
             }
             catch (Exception ex)
@@ -48,7 +43,7 @@ namespace JsonToCsvHomeWork.Controllers
             try
             {
                 _jsonToCsv.UpdateTable(key, newValue);
-                _jsonToCsv.ParseDataTableToJson();
+                _jsonToCsv.CreateJsonFromCsv();
                 return Ok(true);
             }
             catch (Exception ex)
@@ -57,12 +52,13 @@ namespace JsonToCsvHomeWork.Controllers
             }
         }
 
-        [HttpPost("download-file")]
+        [HttpGet("download-file")]
         public async Task<IActionResult> DownloadFile()
         {
             try
             {
-                return Ok(true);
+                var response = _jsonToCsv.CreateJsonFromCsv();
+                return Ok(response);
             }
             catch (Exception ex)
             {

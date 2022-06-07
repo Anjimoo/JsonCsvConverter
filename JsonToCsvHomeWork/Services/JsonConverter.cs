@@ -1,5 +1,6 @@
 ﻿using JsonToCsvHomeWork.Dtos;
 using System.Data;
+using System.Dynamic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -7,14 +8,17 @@ namespace JsonToCsvHomeWork.Services
 {
     public class JsonConverter
     {
-
         private const string Key = "Key";
         private const string Value = "Value";
         private const string NewValue = "NewValue";
-        private readonly DataTable _csvRepresentation;
-        private readonly List<DataTableRow> _dataTableObjectRows;
+        private DataTable _csvRepresentation;
+        private List<DataTableRow> _dataTableObjectRows;
+        private DataRow? _currentDataRow;
         private JsonNode? _jsonNode;
-        public JsonConverter()
+        /// <summary>
+        /// Resets singletons private fields
+        /// </summary>
+        public void ResetWhenNewFileUploaded()
         {
             _dataTableObjectRows = new List<DataTableRow>();
             _csvRepresentation = new DataTable();
@@ -53,14 +57,7 @@ namespace JsonToCsvHomeWork.Services
         /// <param name="newValue"></param>
         public void UpdateTable(string key, string newValue)
         {
-            //foreach (DataRow row in _csvRepresentation.Rows)
-            //{
-            //    if ((string)row[Key] == key)
-            //    {
-            //        row[Value] = newValue;
-            //    }
-            //}
-            _csvRepresentation.Rows.Find(key)![Value] = newValue;
+            _csvRepresentation.Rows.Find(key)![NewValue] = newValue;
         }
         /// <summary>
         /// Get data transfer objects
@@ -149,7 +146,7 @@ namespace JsonToCsvHomeWork.Services
 
                 case JsonValue jsonValue:
                     {
-                        FillRow(jsonValue.GetPath(), jsonValue.ToJsonString());
+                        FillRow(jsonValue.GetPath(), jsonValue.ToJsonString().Trim('"'));
                         break;
                     }
 
@@ -158,20 +155,156 @@ namespace JsonToCsvHomeWork.Services
             }
         }
 
-        public JsonNode ParseDataTableToJson()
+        private void TraverseJsonAndUpdate(JsonNode jsonNode)
+        {
+            switch (jsonNode)
+            {
+                case JsonObject jsonObject:
+                    {
+                        bool isInCurrentObject = false;
+                        foreach (var (key, node) in jsonObject)
+                        {
+                            if (node is null)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                if (node.GetPath() == (string)_currentDataRow[Key])
+                                {
+                                    isInCurrentObject = true;
+                                }
+                                TraverseJsonAndUpdate(node!);
+                            }
+                        }
+                        if (isInCurrentObject)
+                        {
+                            var propertyName = ((string)_currentDataRow[Key]).Substring(((string)_currentDataRow[Key]).LastIndexOf('.') + 1);
+                            jsonObject[propertyName] = (string)_currentDataRow[NewValue];
+                        }
+
+                        break;
+                    }
+
+                case JsonArray jsonArray:
+                    {
+                        for (int i = 0; i < jsonArray.Count; i++)
+                        {
+                            if (jsonArray[i] is null)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                if (jsonArray[i]!.GetPath() == (string)_currentDataRow[Key])
+                                {
+                                    jsonArray[i] = (string)_currentDataRow[NewValue];
+                                }
+                                TraverseJsonAndUpdate(jsonArray[i]!);
+                            }
+                        }
+                        break;
+                    }
+                case JsonValue jsonValue:
+                    {
+                        break;
+                    }
+
+                default:
+                    throw new NotImplementedException($"Support for {jsonNode.GetType()} not implemented.");
+            }
+        }
+
+        public string GetUpdatedJson()
+        {
+            return JsonSerializer.Serialize(_jsonNode);
+        }
+
+        public void UpdateJsonNode()
         {
             foreach (DataRow row in _csvRepresentation.Rows)
             {
-                int splitIndex = ((string)row[Key]).LastIndexOf(".");
-                var currentObject = ((string)row[Key]).Substring(0, splitIndex);
-                var currentValueName = ((string)row[Key]).Substring(splitIndex + 1);
-                JsonNode node = new JsonObject()
+                if (row[NewValue].ToString() != String.Empty)
                 {
-                    [currentValueName] = row[Value].ToString()
-                };
-
+                    _currentDataRow = row;
+                    TraverseJsonAndUpdate(_jsonNode!);
+                    row[NewValue] = String.Empty;
+                }
             }
-            return null;
+        }
+
+        public string CreateJsonFromCsv()
+        {
+            JsonNode node = new JsonObject();
+            foreach (DataRow row in _csvRepresentation.Rows)
+            {
+                _currentDataRow = row;
+                TraverseJsonPath(node, ((string)row[Key]).Substring(2));
+            }
+            var json = JsonSerializer.Serialize(node);
+            return json;
+        }
+
+        public void TraverseJsonPath(JsonNode node, string path)
+        {
+            if (path.Split('.').Length == 1)
+            {
+                node[path] = (string)_currentDataRow[Value];
+            }
+            else
+            {
+                string currentObjectName = path.Substring(0, path.IndexOf('.'));
+                string nextObject = path.Substring(path.IndexOf('.') + 1);
+                //if array
+                if (currentObjectName.Contains('['))
+                {
+                    string key = currentObjectName.Substring(0, currentObjectName.Length - 3);
+                    if (node is JsonArray)
+                    {
+                    }
+                    else
+                    {
+                        if (!node.AsObject().ContainsKey(key))
+                        {
+                            node.AsObject().Add(key, new JsonArray());
+                            TraverseJsonPath(node[key], $"{nextObject}.{node[key].AsArray().Count}");
+                        }
+                        else
+                        {
+                            TraverseJsonPath(node[key], $"{nextObject}.{node[key].AsArray().Count}");
+                        }
+                    }
+                }
+                else
+                {
+                    string key = currentObjectName;
+                    if (node is JsonArray)
+                    {
+                        if (node.AsArray().Count == int.Parse(nextObject))
+                        {
+                            node.AsArray().Add(new JsonObject());
+                            TraverseJsonPath(node[node.AsArray().Count - 1], key);
+                        }
+                        else
+                        {
+                            TraverseJsonPath(node[node.AsArray().Count - 1], key);
+                        }
+
+                    }
+                    else
+                    {
+                        if (!node.AsObject().ContainsKey(key))
+                        {
+                            node.AsObject().Add(key, new JsonObject());
+                            TraverseJsonPath(node[key], nextObject);
+                        }
+                        else
+                        {
+                            TraverseJsonPath(node[key], nextObject);
+                        }
+                    }
+                }
+            }
         }
     }
 }
