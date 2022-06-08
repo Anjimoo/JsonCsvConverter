@@ -10,26 +10,32 @@ namespace JsonToCsvHomeWork.Controllers
     [Route("[controller]")]
     public class JsonConverterController : ControllerBase
     {
-        private readonly ILogger<JsonConverterController> _logger;
-        private readonly IWebHostEnvironment _hostingEnvironment;
-        private readonly JsonConverter _jsonToCsv;
+        private readonly ConverterManager _converterManager;
 
-        public JsonConverterController(ILogger<JsonConverterController> logger, IWebHostEnvironment hostingEnvironment, JsonConverter jsonToCsv)
+        public JsonConverterController(ConverterManager converterManager)
         {
-            _jsonToCsv = jsonToCsv;
-            _hostingEnvironment = hostingEnvironment;
-            _logger = logger;
+            _converterManager = converterManager;
         }
 
         [HttpPost("upload-file")]
-        public async Task<IActionResult> UploadFile([FromForm] IFormCollection form)
+        public IActionResult UploadFile([FromHeader] Guid clientId, [FromForm] IFormCollection form)
         {
             try
             {
                 var file = form.Files[0];
-                _jsonToCsv.ResetWhenNewFileUploaded();
-                _jsonToCsv.Convert(file);
-                return Ok(_jsonToCsv.GetCsvJsonRepresentation());
+                using Stream utf8Json = file.OpenReadStream();
+                _converterManager.GetOrAdd(clientId).ConvertJsonFileToCsv(utf8Json);
+
+                var reader = _converterManager.GetOrAdd(clientId);
+
+                IEnumerable<DataTableRowDto> dataRows = reader.ReadRows().Select(tuple => new DataTableRowDto
+                {
+                    Key = tuple.Key,
+                    Value = tuple.Value,
+                    NewValue = tuple.NewValue
+                });
+
+                return Ok(dataRows);
             }
             catch (Exception ex)
             {
@@ -38,13 +44,12 @@ namespace JsonToCsvHomeWork.Controllers
         }
 
         [HttpPost("update-json/{key}/{newValue}")]
-        public async Task<IActionResult> UpdateJson([FromRoute] string key, string newValue)
+        public IActionResult UpdateJson([FromHeader] Guid clientId, [FromRoute] string key, string newValue)
         {
             try
             {
-                _jsonToCsv.UpdateTable(key, newValue);
-                _jsonToCsv.CreateJsonFromCsv();
-                return Ok(true);
+                _converterManager.GetOrAdd(clientId).UpdateTable(key, newValue);
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -53,12 +58,27 @@ namespace JsonToCsvHomeWork.Controllers
         }
 
         [HttpGet("download-file")]
-        public async Task<IActionResult> DownloadFile()
+        public IActionResult DownloadFile([FromHeader] Guid clientId)
         {
             try
             {
-                var response = _jsonToCsv.CreateJsonFromCsv();
-                return Ok(response);
+                var response = _converterManager.GetOrAdd(clientId).CreateJsonFromCsv();
+                _converterManager.Remove(clientId);
+                return Ok(response.ToJsonString());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("remove-file")]
+        public IActionResult RemoveFile([FromHeader] Guid clientId)
+        {
+            try
+            {
+                _converterManager.Remove(clientId);
+                return Ok();
             }
             catch (Exception ex)
             {

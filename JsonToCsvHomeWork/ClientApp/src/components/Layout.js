@@ -6,8 +6,8 @@ export class Layout extends Component {
   static displayName = Layout.name;
 
   render () {
-    return (
-       <div style={{ height: '100vh' }}>
+      return (
+          <div className='layout'>
         <NavMenu />
           {this.props.children}
       </div>

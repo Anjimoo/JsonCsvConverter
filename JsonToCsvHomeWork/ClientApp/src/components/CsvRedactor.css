@@ -58,3 +58,10 @@ p {
     font-size: 36px;
 }
 
+@media only screen and (max-width: 768px) {
+    .csv-redactor {
+        width: 100%;
+        height: fit-content;
+    }
+}
+

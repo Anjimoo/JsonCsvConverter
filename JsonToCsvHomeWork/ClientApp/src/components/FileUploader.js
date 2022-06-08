@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import './FileUploader.css';
+
 
 export class FileUploader extends Component {
     static displayName = FileUploader.name;
@@ -11,6 +13,7 @@ export class FileUploader extends Component {
             table: props.table
         }
         this.onFileUpload = this.onFileUpload.bind(this);
+        this.removePreviousFile = this.removePreviousFile.bind(this);
     }
 
     onFileChange = event => {
@@ -21,18 +24,24 @@ export class FileUploader extends Component {
 
     async onFileUpload() {
         const formData = new FormData();
+        //attemp to remove previous file from server
+        if (sessionStorage.getItem('currentGuid') !== null) {
+            await this.removePreviousFile();
+        }
 
+        sessionStorage.setItem('currentGuid', uuidv4());
         formData.append(
-            "myFile",
+            "currentFile",
             this.state.selectedFile,
             this.state.selectedFile.name
         )
-
-        let response = await fetch('jsonconverter/upload-file',
+        
+        await fetch('jsonconverter/upload-file',
             {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
+                    'clientId': sessionStorage.getItem('currentGuid') 
                 },
                 body: formData
             }
@@ -41,14 +50,24 @@ export class FileUploader extends Component {
                 this.props.handleTableUpdate(data);
                 console.log(data);
             })
+    }
 
-        //TO DO request to backend api
+    async removePreviousFile() {
+        await fetch('jsonconverter/remove-file',
+            {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'clientId': sessionStorage.getItem('currentGuid')
+                }
+            }
+        )
     }
 
     fileData = () => {
 
-        if (this.state.selectedFile) {
-
+        if (this.state.selectedFile)
+        {
             return (
                 <div>
                     <h2>File Details:</h2>
@@ -56,7 +75,9 @@ export class FileUploader extends Component {
                     <p>File Type: {this.state.selectedFile.type}</p>
                 </div>
             );
-        } else {
+        }
+        else
+        {
             return (
                 <div>
                     <br />
@@ -72,9 +93,9 @@ export class FileUploader extends Component {
                 <h3>
                     Upload Json File!
                 </h3>
-                <div>
+                <div className='upload-container'>
                     <input className='input-file' type="file" onChange={this.onFileChange} />
-                    <button onClick={this.onFileUpload}>
+                    <button className='upload-button' onClick={this.onFileUpload}>
                         Upload!
                     </button>
                 </div>

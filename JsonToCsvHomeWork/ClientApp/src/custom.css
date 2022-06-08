@@ -12,3 +12,13 @@ code {
   background-color: #1b6ec2;
   border-color: #1861ac;
 }
+
+.layout{
+    height: 100vh;
+}
+
+@media only screen and (max-width: 768px) {
+    .layout {
+        height: fit-content;
+    }
+}

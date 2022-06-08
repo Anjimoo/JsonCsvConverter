@@ -11,3 +11,11 @@
     align-self: center;
     font-size: 26px;
 }
+
+@media only screen and (max-width: 768px) {
+    .header {
+        background-color: cadetblue;
+        height: 5em;
+        display: flex;
+    }
+}

@@ -21,7 +21,7 @@ export class MainMenu extends Component {
         return (
             <div className='main'>
                 <FileUploader handleTableUpdate={this.handleTableUpdate} table={this.state.table} />
-                <CsvRedactor table={this.state.table} />
+                <CsvRedactor handleTableUpdate={this.handleTableUpdate} table={this.state.table} />
             </div>
         );
     }

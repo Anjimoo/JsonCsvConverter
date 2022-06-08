@@ -1,6 +1,6 @@
 ﻿namespace JsonToCsvHomeWork.Dtos
 {
-    public class DataTableRow
+    public class DataTableRowDto
     {
         public string? Key { get; set; }
         public string? Value { get; set; }

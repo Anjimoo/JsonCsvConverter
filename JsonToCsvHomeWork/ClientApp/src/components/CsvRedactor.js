@@ -30,7 +30,8 @@ export class CsvRedactor extends Component {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'clientId': sessionStorage.getItem('currentGuid')
                 }
             }
         );
@@ -42,7 +43,8 @@ export class CsvRedactor extends Component {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'clientId': sessionStorage.getItem('currentGuid')
                 }
             }
         ).then(response => response.json())
@@ -61,46 +63,47 @@ export class CsvRedactor extends Component {
                     a.click();
                     document.body.removeChild(a);
                 }
+                this.props.handleTableUpdate(null);
             });
-}
+    }
 
-componentWillReceiveProps(nextProps) {
-    this.setState({
-        table: nextProps.table
-    });
-}
+    componentWillReceiveProps(nextProps) {
+        this.setState({
+            table: nextProps.table
+        });
+    }
 
-render() {
-    let isJsonUploaded = this.state.table === null;
-    console.log(this.state.table);
-    return (
-        <div className='csv-redactor'>
-            {isJsonUploaded ?
-                <p>Upload Json to see CSV representation.</p>
-                :
-                <div className='edit-file-container'>
-                    <h3>Edit json file</h3>
-                    <div className='table-container'>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Value</th>
-                                    <th>New Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {this.state.table.map((row) => (<TableRow key={row.key} row={row}
-                                    handleUpdate={this.handleUpdate}
-                                    sendUpdatedTable={this.sendUpdatedTable}
-                                />))}
-                            </tbody>
-                        </table>
+    render() {
+        let isJsonUploaded = this.state.table === null;
+        return (
+            <div className='csv-redactor'>
+                {isJsonUploaded ?
+                    <p>Upload Json to see CSV representation.</p>
+                    :
+                    <div className='edit-file-container'>
+                        <h3>Edit json file</h3>
+                        <div className='table-container'>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Key</th>
+                                        <th>Value</th>
+                                        <th>New Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {this.state.table.map((row) =>
+                                    (<TableRow key={row.key} row={row}
+                                        handleUpdate={this.handleUpdate}
+                                        sendUpdatedTable={this.sendUpdatedTable} />)
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button onClick={this.downloadUpdatedJson} className='down-button'><b>Download Edited Json</b></button>
                     </div>
-                    <button onClick={this.downloadUpdatedJson} className='down-button'><b>Download Edited Json</b></button>
-                </div>
-            }
-        </div>
-    );
-}
+                }
+            </div>
+        );
+    }
 }

@@ -24,7 +24,7 @@ export class NavMenu extends Component {
     render() {
         return (
             <header className='header'>
-                <p className='header-text'><b>Json To Csv Converter</b></p>
+                <p className='header-text'><b>JsonRedactor</b></p>
             </header>
         );
     }
