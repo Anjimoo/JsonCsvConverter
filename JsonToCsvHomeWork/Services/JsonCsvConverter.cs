@@ -166,19 +166,24 @@ namespace JsonToCsvHomeWork.Services
             return node;
         }
 
+        private static bool IsLeafNode(string path)
+        {
+            return path.Split('.').Length == 1;
+        }
+
         /// <summary>
         /// Traverse path of an object and create new JsonValue/JsonObject/JsonArray
         /// </summary>
-        /// <param name="currentNode"></param>
+        /// <param name="parentNode"></param>
         /// <param name="path">Path to the object in for of objectName.ProperyName</param>
         /// <param name="currentObjectIndex"></param>
-        public void TraverseJsonPath(JsonNode currentNode, string path, int? currentObjectIndex = null)
+        public void TraverseJsonPath(JsonNode parentNode, string path, int? currentObjectIndex = null)
         {
-            if (path.Split('.').Length == 1)
+            if (IsLeafNode(path))
             {
-                if (currentNode is JsonArray jsonArray)
+                if (parentNode is JsonArray jsonArray)
                 {
-                    if (path.Contains('[')) //current object is in array
+                    if (IsArray(path))
                     {
                         AddJsonValueToArray(path, currentObjectIndex, jsonArray);
                     }
@@ -187,9 +192,17 @@ namespace JsonToCsvHomeWork.Services
                         AddPropertyToObjectInArray(path, currentObjectIndex, jsonArray);
                     }
                 }
-                else
+                else // parent Node is JsonObject
                 {
-                    currentNode[path] = (string)_currentDataRow![Value];
+                    if (IsArray(path)) 
+                    {
+                        var currentArrayName = GetNameWithoutBrackets(path);
+                        AddJsonValueToArrayInObject(currentArrayName, parentNode.AsObject());
+                    }
+                    else
+                    {
+                        parentNode[path] = (string)_currentDataRow![Value];
+                    }
                 }
             }
             else
@@ -197,32 +210,36 @@ namespace JsonToCsvHomeWork.Services
                 string currentObjectName = path.Substring(0, path.IndexOf('.'));
                 string nextObjectInPath = path.Substring(path.IndexOf('.') + 1);
 
-                if (currentObjectName.Contains('[')) //current object is in array
+                if (IsArray(currentObjectName))
                 {
-                    string key = currentObjectName.Substring(0, currentObjectName.Length - 3);
-                    if (currentNode is JsonArray jsonArray)
+                    string key = GetNameWithoutBrackets(currentObjectName);
+                    if (parentNode is JsonArray jsonArray)
                     {
                         TraverseJsonArray(currentObjectIndex, currentObjectName, nextObjectInPath, key, jsonArray);
                     }
                     else
                     {
-                        TraverseJsonObjectToAddArray(currentNode, currentObjectName, nextObjectInPath, key);
+                        TraverseJsonObjectToAddArray(parentNode, currentObjectName, nextObjectInPath, key);
                     }
-                } 
-                else //current object is in object
+                }
+                else //current object is an object
                 {
-                    if (!currentNode.AsObject().ContainsKey(currentObjectName))
+                    if (!parentNode.AsObject().ContainsKey(currentObjectName))
                     {
-                        currentNode.AsObject().Add(currentObjectName, new JsonObject());
-                        TraverseJsonPath(currentNode[currentObjectName], nextObjectInPath);
+                        parentNode.AsObject().Add(currentObjectName, new JsonObject());
+                        TraverseJsonPath(parentNode[currentObjectName], nextObjectInPath);
                     }
                     else
                     {
-                        //traverse to next path
-                        TraverseJsonPath(currentNode[currentObjectName], nextObjectInPath);
+                        TraverseJsonPath(parentNode[currentObjectName], nextObjectInPath);
                     }
                 }
             }
+        }
+
+        private static bool IsArray(string jsonPropertyName)
+        {
+            return jsonPropertyName.EndsWith(']');
         }
 
         /// <summary>
@@ -268,8 +285,12 @@ namespace JsonToCsvHomeWork.Services
         /// <param name="nextObjectName"></param>
         /// <param name="propertyName"></param>
         /// <param name="jsonArray"></param>
-        private void TraverseJsonArray(int? currentObjectIndex, string currentArrayName, 
-                                                string nextObjectName, string propertyName, JsonArray jsonArray)
+        private void TraverseJsonArray(
+            int? currentObjectIndex,
+            string currentArrayName,
+            string nextObjectName,
+            string propertyName,
+            JsonArray jsonArray)
         {
             int indexOfCurrentObject = ExtractIndexFromName(currentArrayName);
             if (jsonArray.Count - 1 == currentObjectIndex)
@@ -321,8 +342,23 @@ namespace JsonToCsvHomeWork.Services
         /// <param name="jsonArray"></param>
         private void AddJsonValueToArray(string currentArray, int? currentObjectIndex, JsonArray jsonArray)
         {
-            var arrayNameWithoutBrackets = currentArray.Substring(0, currentArray.Length - 3);
+            var arrayNameWithoutBrackets = GetNameWithoutBrackets(currentArray);
             var currentObject = jsonArray[currentObjectIndex.Value].AsObject();
+            AddJsonValueToArrayInObject(arrayNameWithoutBrackets, currentObject);
+        }
+
+        private  static string GetNameWithoutBrackets(string nameWithBrackets)
+        {
+            return nameWithBrackets[..^3];//.Substring(0, nameWithBrackets.Length - 3);
+        }
+
+        /// <summary>
+        /// Adds new JsonValue to JsonArray in current object
+        /// </summary>
+        /// <param name="arrayNameWithoutBrackets"></param>
+        /// <param name="currentObject">Object with array of JsonValues</param>
+        private void AddJsonValueToArrayInObject(string arrayNameWithoutBrackets, JsonObject currentObject)
+        {
             if (!currentObject.ContainsKey(arrayNameWithoutBrackets))
             {
                 currentObject.Add(arrayNameWithoutBrackets,
