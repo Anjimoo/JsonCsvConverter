@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Collapse, Container, Navbar, NavbarBrand, NavbarToggler, NavItem, NavLink } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import './NavMenu.css';
+import JsonConverterIcon from '/icons/JsonConverter.png';
 
 export class NavMenu extends Component {
     static displayName = NavMenu.name;
@@ -24,7 +25,7 @@ export class NavMenu extends Component {
     render() {
         return (
             <header className='header'>
-                <p className='header-text'><b>JsonRedactor</b></p>
+                <img src={JsonConverterIcon} />
             </header>
         );
     }
